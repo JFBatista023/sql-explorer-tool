@@ -1,6 +1,9 @@
+import logging
+
 import yaml
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.exc import SQLAlchemyError
+from logging_utils import log_event, setup_logger
 
 with open("config.yaml", "r", encoding="utf-8") as f:
     CONFIG = yaml.safe_load(f)
@@ -9,6 +12,7 @@ ENGINES = {}
 MAX_LIMIT = 500
 LOCK_TIMEOUT_MS = 20000
 QUERY_TIMEOUT_SECONDS = 30
+logger = setup_logger()
 
 def get_engine(connection_name: str):
     if connection_name not in CONFIG["connections"]:
@@ -16,6 +20,12 @@ def get_engine(connection_name: str):
 
     if connection_name not in ENGINES:
         url = CONFIG["connections"][connection_name]["url"]
+        log_event(
+            logger,
+            logging.INFO,
+            "Creating SQLAlchemy engine",
+            connection=connection_name,
+        )
         ENGINES[connection_name] = create_engine(
             url,
             pool_pre_ping=True,
@@ -28,6 +38,7 @@ def get_engine(connection_name: str):
 def run_query(connection_name: str, sql: str, limit: int = 100):
     engine = get_engine(connection_name)
     limit = max(1, min(limit, MAX_LIMIT))
+    sql_preview = " ".join(sql.strip().split())[:120]
 
     try:
         with engine.connect() as conn:
@@ -39,8 +50,22 @@ def run_query(connection_name: str, sql: str, limit: int = 100):
                 raw_conn = conn.connection.driver_connection
                 raw_conn.timeout = QUERY_TIMEOUT_SECONDS
             except Exception:
-                pass
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "Could not set DBAPI query timeout; continuing",
+                    connection=connection_name,
+                    timeout_seconds=QUERY_TIMEOUT_SECONDS,
+                )
 
+            log_event(
+                logger,
+                logging.INFO,
+                "Executing query on database",
+                connection=connection_name,
+                limit=limit,
+                sql_preview=sql_preview,
+            )
             result = conn.execute(text(sql))
             rows = result.fetchmany(limit)
 
@@ -50,6 +75,13 @@ def run_query(connection_name: str, sql: str, limit: int = 100):
                 "limit": limit,
             }
     except SQLAlchemyError as exc:
+        log_event(
+            logger,
+            logging.ERROR,
+            "Database query execution failed",
+            connection=connection_name,
+            error=str(exc),
+        )
         raise ValueError(f"Erro ao executar consulta: {exc}") from exc
 
 

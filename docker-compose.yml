@@ -1,0 +1,13 @@
+services:
+  sql-explorer-readonly:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sql-explorer-readonly
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      LOG_LEVEL: INFO
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["python3", "server.py"]
