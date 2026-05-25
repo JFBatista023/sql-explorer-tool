@@ -3,6 +3,7 @@ import logging
 import os
 import socket
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 LOGGER_NAME = "sql_explorer_readonly"
@@ -43,6 +44,27 @@ def setup_logger() -> logging.Logger:
     handler.setFormatter(JsonLikeFormatter())
 
     logger.addHandler(handler)
+
+    log_file = os.getenv("LOG_FILE", "").strip()
+    if log_file:
+        log_path = Path(log_file)
+        try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            file_handler = logging.FileHandler(log_path, encoding="utf-8")
+            file_handler.setLevel(level)
+            file_handler.setFormatter(JsonLikeFormatter())
+            logger.addHandler(file_handler)
+        except OSError as exc:
+            logger.warning(
+                "Could not initialize file logger; using stderr only",
+                extra={
+                    "extra_fields": {
+                        "log_file": str(log_path),
+                        "error": str(exc),
+                    }
+                },
+            )
+
     return logger
 
 
