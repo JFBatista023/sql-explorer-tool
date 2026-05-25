@@ -2,17 +2,18 @@ import json
 import logging
 import os
 import socket
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 LOGGER_NAME = "sql_explorer_readonly"
+BRASILIA_TZ = timezone(timedelta(hours=-3))
 
 
 class JsonLikeFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(BRASILIA_TZ).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
