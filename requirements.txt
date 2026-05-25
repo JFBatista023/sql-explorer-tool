@@ -1,0 +1,6 @@
+mcp
+sqlalchemy
+pyodbc
+psycopg2-binary
+pyyaml
+sqlparse
