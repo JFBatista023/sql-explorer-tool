@@ -69,7 +69,7 @@ Ao iniciar, voce deve ver log de startup do servico.
 
 ```bash
 source venv/bin/activate
-python3 -c "from db import list_tables; print(len(list_tables('tce-envia-dev')))"
+python3 -c "from db import list_tables; print(len(list_tables('banco-dev')))"
 ```
 
 Se retornar um numero (`> 0`), a conexao e a listagem de tabelas estao funcionando.
